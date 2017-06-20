@@ -1,0 +1,37 @@
+Reflection on Project 4 (PID ctontroller)
+
+[----- Describe the effect each of the P, I, D components had in your implementation -----]
+
+P: Proportional
+The proportional component is proportional to CTE, i.e., the lateral offset of the vehicle to the lane center. The effect of the proportional component then is to try to bring back the vehicle to the lane center whenever there is an (lateral) offset. 
+Imagine if we only have derivative component and the vehicle is travelling in parallel with the lane center to some lateral offset, the D component alone couldn't bring back the vehicle to the lane center because there is no change in the vehicle offset, so the D error (and in this case the total error, in turn the control) would be zero and the vehicle will continue to drive in parallel to the lane center. The I component, if any, will try to bring back the vehicle but the effect of the I component is not as "direct" as the P component, which is directly proportional to the actual offset. Only the P component will respond to the offset immedidately. 
+Proportional component alone will cause overshoot and, when the proportional gain gets large, can result in large oscillation, and even bring the system to instability when the P gain is too large. 
+
+I: Integral
+The integral component is proportional to the sum (integral) of the CTE. If some system error (e.g., the actual wheel angle does not totally match up to the command) exists, P component and D component would not be able to bring the vehicle entirely to the lane center, but with the I component, the cumulative error would eventually render the control big enough to bring back the vehicle. 
+In our case of car control in the simulator, since the model is ideal, it is noticed that the system error is very small (may be negligible), but the I component still proves to be useful when vehicle is making a turn. Imagine the vehicle is going along a circle, w/o the I component, the vehicle could end up in a steady state that the vehicle has a constant offset to the lane center: that offset result in the P error, which makes the vehicle turn but could not completely follow the circle, and since it's steady state, meaning no change rate for the offset, the D componet will have no effect. With the I component, however, that offset will be accumulated and result in larger turning angle, which will try to bring the vehicle closer to the lane center. 
+The system can also be driven to instability when the I gain gets too large.
+
+D: Derivative
+The derivative component is proportional to the difference (derivative) of CTE between current step and previous step, or equivalently the change rate of the lateral offset. The effect of the derivative component is damping, i.e., to mitigate the oscillation, because when the system is being brought towards the reference point, since the change rate is opposite to the actual offset, the D component tries to some extent to counteract what P component is doing, thus making the overshoot less severe. 
+The D component proves to be extremely useful when the vehicle is starting in a sharp turn, where the P and I components would not be able to bring the vehicle back in time (still small when the vehicle just enters the turn), but the D component will respond instantaneously to that change of lateral offset and start to turn the wheel immediately. Also as mentioned above, the D component can "damp" the oscillation caused by P and I component. 
+In practical system, the D component/gain is usually kept small due to large noise contained in the error derivative, in our case here though, it is not a big concern since everything is "ideal" in the simulator. 
+
+
+[----- Describe how the final hyperparameters were chosen -----]
+
+The P, I, D coefficients for this project are chosen manually by trial-and-error following the steps below:
+
+1. First (with Ki and Kd both at 0) increase Kp until the vehicle is unstable (big oscillation or even goes off the track) on the initial straight section of road, then starts to decrease Kp. It's noted that even with Kp = 0.2 (and throttle = 0.5), the oscillation can get very big. I then keep decreasing Kp and eventually select 0.1 (which can still result in some oscillation when throttle is 0.5 - negligible when throttle = 0.3 though), and try to see if adding D term can mitigate that oscillation. 
+
+2. Increase Kd little by little, to decrease the oscillation. There is some immediate effect of oscillation mitigation when Kd is added. As analyzed in the previous section, the D term is extremely useful at the start of sharp turns. When Kd is small, the vehicle still cannot make some sharp turns. So I keep increasing Kd until it could make all sharp turns. (Kd = 1 is enough, but eventually I chose 2, since it renders faster response at the start of the turns and also nicely mitigating the oscillation - notice that too big a Kd can also result in big oscillation)
+
+3. So far the vehicle can travel on the track without problem. So I term is really not absolutely necessary here. But it's noted that after the vehicle enters a turn, and if the turn is a pretty long one, i.e., the turning angle is large, then the vehicle can have a constant offset to the lane center, due to the reason analyzed in the previous section. So by adding I component, the "drifting" effect can be mitigated. Ki = 0.001 is eventually selected. (it's very small due that in the discrete PID controller here when summing up/integrated the error, the delta t is not really considered here, otherwise, the Ki can be of about the same magnitude as Kp.)
+
+4. Last, fine tune the parameters a bit around the selected ones. 
+
+The final PID coefficients are chosen to be Kp = 0.1, Ki = .001, Kd = 2. (for throttle value of 0.5) Though not necessarly optimal, the combination renders acceptable simulation result. 
+
+[----- Some remarks -----]
+1. It is noted that, with reason, if the computational resources are exhausted by some other heavy users (e.g., opening up some video), the control could lose stability and the car could goes off the track in the simulator (even with tuned parameters)
+2. This doc also serves as a self-note. Sorry to the reviewer if I wrote too much.
